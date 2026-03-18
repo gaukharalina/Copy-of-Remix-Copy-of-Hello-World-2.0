@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Remix: Copy of Hello World 2.0",
+  "description": "A high-end, AI-powered universal greeting application that reimagines \u0027Hello World\u0027 through text, speech, and generative imagery across any culture or persona.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
