@@ -12,19 +12,55 @@ const LANGUAGES = [
 const App: React.FC = () => {
   const [vibe, setVibe] = useState<GreetingVibe>(GreetingVibe.CYBERPUNK);
   const [language, setLanguage] = useState('English');
+  const [manualText, setManualText] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGreeting, setCurrentGreeting] = useState<GreetingRecord | null>(null);
   const [history, setHistory] = useState<GreetingRecord[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   
   const audioContextRef = useRef<AudioContext | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const startRecording = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = language === 'English' ? 'en-US' : language; // Simple mapping, could be better
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsRecording(false);
+    };
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setManualText(transcript);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  };
 
   const handleGenerate = async () => {
     if (isGenerating) return;
     setIsGenerating(true);
     
     try {
-      const text = await gemini.generateGreetingText(vibe, language);
+      const text = manualText.trim() || await gemini.generateGreetingText(vibe, language);
       
       // Concurrently start generating image and audio
       const [imageUrl, audioData] = await Promise.all([
@@ -44,6 +80,7 @@ const App: React.FC = () => {
 
       setCurrentGreeting(newRecord);
       setHistory(prev => [newRecord, ...prev].slice(0, 10));
+      setManualText(''); // Clear after generation
     } catch (error) {
       console.error("Generation failed", error);
     } finally {
@@ -90,9 +127,9 @@ const App: React.FC = () => {
         <h1 className="text-5xl md:text-7xl font-bold font-display text-center mb-6 tracking-tight">
           Hello <span className="gradient-text">World</span> 2.0
         </h1>
-        <p className="text-gray-400 text-lg md:text-xl text-center max-w-2xl leading-relaxed">
+        <h2 className="text-gray-400 text-lg md:text-xl text-center max-w-2xl leading-relaxed">
           The ultimate expression of the first line of code. Reimagined by artificial intelligence across time, space, and personas.
-        </p>
+        </h2>
       </header>
 
       <main className="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -110,6 +147,30 @@ const App: React.FC = () => {
               >
                 {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400">Your Greeting (Optional)</label>
+              <div className="relative">
+                <textarea
+                  value={manualText}
+                  onChange={(e) => setManualText(e.target.value)}
+                  placeholder="Speak or type your greeting..."
+                  className="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-indigo-500 transition-all outline-none resize-none h-24 text-sm"
+                />
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`absolute right-3 top-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    isRecording 
+                    ? 'bg-red-500 text-white animate-pulse' 
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                  }`}
+                  title={isRecording ? "Stop Recording" : "Start Voice Input"}
+                >
+                  <i className={`fa-solid ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-500">Leave empty to let AI generate a greeting for you.</p>
             </div>
 
             <div className="space-y-2">

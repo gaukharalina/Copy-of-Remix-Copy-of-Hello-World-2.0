@@ -6,7 +6,7 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://aistudio-autopush.corp.google.com/apps/a9d88066-17ea-4116-bed4-0eb99df16709
+View your app in AI Studio: https://localhost.corp.google.com:26001/apps/a9d88066-17ea-4116-bed4-0eb99df16709
 
 ## Run Locally
 
